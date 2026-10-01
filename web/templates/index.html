@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}AdsDrift Dashboard — Overview{% endblock %}
+{% block content %}
+<h1>AdsDrift</h1>
+<p class="muted">A one-pass conditional generator for adsorption structures, designed for catalyst screening.</p>
+
+<div class="card-grid">
+    <div class="stat-card">
+        <div class="label">Environment</div>
+        <div class="value green">Ready</div>
+        <div class="detail">Python 3.12 · PyTorch (CPU) · ASE · e3nn</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Adsorbate Templates</div>
+        <div class="value blue">86</div>
+        <div class="detail">Bundled library — <a href="{{ url_for('adsorbates') }}">browse &rarr;</a></div>
+    </div>
+    <div class="stat-card">
+        <div class="label">R0 Sampling</div>
+        <div class="value green">Available</div>
+        <div class="detail">No checkpoint needed — <a href="{{ url_for('sampling') }}">try it &rarr;</a></div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Generator Model</div>
+        <div class="value blue">Inspectable</div>
+        <div class="detail">Architecture &amp; params — <a href="{{ url_for('model_info') }}">view &rarr;</a></div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>What is AdsDrift?</h2>
+    <p>AdsDrift maps randomly initialized structures distributed across a surface to a set of
+    candidate structures near low-energy endpoints in a single generator forward pass. Given a
+    fixed surface-adsorbate system, it learns the distribution of low-energy configurations and
+    generates structures that can be deduplicated, ranked by energy, and subjected to short
+    relaxations.</p>
+    <p>The generator is a three-branch local SE(3)-equivariant EquiformerV3 that updates slab
+    self-attention, adsorbate self-attention, and bidirectional slab&harr;adsorbate cross-attention
+    in sequence. Coordinate residuals are read from <code>l=1</code> features, making the learned
+    displacement field equivariant by construction.</p>
+</div>
+
+<div class="card">
+    <h2>What works in this demo</h2>
+    <table>
+        <thead>
+            <tr><th>Component</th><th>Status</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Adsorbate Library</td>
+                <td><span class="badge green">Ready</span></td>
+                <td>86 bundled templates with Cartesian coordinates</td>
+            </tr>
+            <tr>
+                <td>R0 Random Initialization</td>
+                <td><span class="badge green">Ready</span></td>
+                <td>Stratified surface coverage sampling with rejection — no checkpoint needed</td>
+            </tr>
+            <tr>
+                <td>Generator Architecture</td>
+                <td><span class="badge green">Ready</span></td>
+                <td>Instantiate and inspect parameter count from any config YAML</td>
+            </tr>
+            <tr>
+                <td>Coverage Visualization</td>
+                <td><span class="badge green">Ready</span></td>
+                <td>Physical cell coverage plot + occupancy grid</td>
+            </tr>
+            <tr>
+                <td>Structure Generation (inference)</td>
+                <td><span class="badge yellow">Needs checkpoint</span></td>
+                <td>Requires a trained <code>test_18</code> checkpoint (not distributed)</td>
+            </tr>
+            <tr>
+                <td>Training</td>
+                <td><span class="badge yellow">Needs data + MACE</span></td>
+                <td>Requires OC20-Dense training data and MACE-MH-1 weights</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Not included in this repository</h2>
+    <div class="note">
+        <strong>Training data, trained checkpoints, and MACE-MH-1 weights are not distributed.</strong>
+        MACE-MH-1 must be obtained separately from its
+        <a href="https://huggingface.co/mace-foundations/mace-mh-1" target="_blank" rel="noopener">official model page</a>
+        and used per the upstream ASL license. Set <code>ADSDRIFT_MACE_CHECKPOINT</code> to the
+        local checkpoint path for training. The R0 sampling and architecture demos on this
+        dashboard run entirely without these external dependencies.
+    </div>
+</div>
+{% endblock %}

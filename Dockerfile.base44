@@ -1,0 +1,19 @@
+FROM python:3.12-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libopenblas-dev \
+    libfreetype6-dev \
+    libpng-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# CPU-only PyTorch (e3nn depends on it)
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+# Remaining dependencies.
+# mace-torch and matscipy are skipped — they are only needed for the training
+# objective (frozen MACE feature encoder), not for the demo dashboard.
+RUN pip install --no-cache-dir flask numpy scipy PyYAML ase matplotlib e3nn
+
+WORKDIR /workspace/AdsDrift

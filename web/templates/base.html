@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AdsDrift Dashboard{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <div class="layout">
+        <nav class="sidebar">
+            <div class="logo">
+                AdsDrift
+                <span class="sub">Adsorption Structure Generator</span>
+            </div>
+            <a href="{{ url_for('index') }}" class="{% if request.path == '/' %}active{% endif %}">Overview</a>
+            <a href="{{ url_for('adsorbates') }}" class="{% if request.path == '/adsorbates' %}active{% endif %}">Adsorbate Library</a>
+            <a href="{{ url_for('sampling') }}" class="{% if request.path == '/sampling' %}active{% endif %}">R0 Sampling Demo</a>
+            <a href="{{ url_for('model_info') }}" class="{% if request.path == '/model' %}active{% endif %}">Model Architecture</a>
+        </nav>
+        <main class="content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

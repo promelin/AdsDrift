@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}R0 Sampling Demo — AdsDrift{% endblock %}
+{% block content %}
+<h1>R0 Sampling Demo</h1>
+<p class="muted">Generate random initial adsorbate structures across a surface. This is the <strong>initialization step</strong> that feeds the generator — no trained checkpoint or MACE weights are needed.</p>
+
+<div class="card">
+    <h3>Configuration</h3>
+    <div class="form-row">
+        <div class="form-group">
+            <label for="surface">Surface</label>
+            <select id="surface">
+                {% for name in surfaces %}
+                <option value="{{ name }}">{{ name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="adsorbate">Adsorbate</label>
+            <select id="adsorbate">
+                {% for a in adsorbates %}
+                <option value="{{ a.id }}">{{ a.id }} — {{ a.name }} ({{ a.formula }})</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="form-group">
+            <label for="num_samples">Number of Samples</label>
+            <input type="number" id="num_samples" value="100" min="1" max="500">
+        </div>
+        <div class="form-group">
+            <label for="seed">Random Seed</label>
+            <input type="number" id="seed" value="42" min="0">
+        </div>
+    </div>
+    <button id="generate-btn" onclick="generate()">Generate Structures</button>
+</div>
+
+<div id="loading">
+    <div class="spinner"></div>
+    <p>Generating random initial structures…</p>
+</div>
+
+<div id="error-msg"></div>
+
+<div id="results">
+    <div class="card-grid">
+        <div class="stat-card">
+            <div class="label">Total Atoms</div>
+            <div class="value" id="r-total-atoms">—</div>
+            <div class="detail" id="r-atom-breakdown"></div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Samples Generated</div>
+            <div class="value blue" id="r-num-samples">—</div>
+            <div class="detail" id="r-proposals"></div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Unique Lateral Positions</div>
+            <div class="value green" id="r-unique-positions">—</div>
+            <div class="detail" id="r-min-distance"></div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Grid Coverage</div>
+            <div class="value" id="r-grid-coverage">—</div>
+            <div class="detail" id="r-grid-cells"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Coverage Plot — <span id="r-surface"></span> + <span id="r-adsorbate"></span></h3>
+        <p class="muted">Left: physical periodic cell with one random adsorbate position per equal-area stratum. Right: occupancy grid after periodic deduplication.</p>
+        <div class="plot-container">
+            <img id="plot" src="" alt="Coverage plot">
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Rejection Statistics</h3>
+        <table>
+            <thead><tr><th>Rejection Reason</th><th>Count</th></tr></thead>
+            <tbody>
+                <tr><td>Contact (adsorbate too close to slab)</td><td id="r-rejected-contact">—</td></tr>
+                <tr><td>Vacuum (adsorbate above ceiling)</td><td id="r-rejected-vacuum">—</td></tr>
+                <tr><td>Lateral deduplication (too close to another sample)</td><td id="r-rejected-lateral">—</td></tr>
+                <tr><td>Total proposals</td><td id="r-total-proposals">—</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+async function generate() {
+    const btn = document.getElementById('generate-btn');
+    const loading = document.getElementById('loading');
+    const results = document.getElementById('results');
+    const errorMsg = document.getElementById('error-msg');
+
+    btn.disabled = true;
+    loading.style.display = 'block';
+    results.style.display = 'none';
+    errorMsg.style.display = 'none';
+    errorMsg.textContent = '';
+
+    try {
+        const resp = await fetch('/api/sample', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                surface: document.getElementById('surface').value,
+                adsorbate: document.getElementById('adsorbate').value,
+                num_samples: parseInt(document.getElementById('num_samples').value),
+                seed: parseInt(document.getElementById('seed').value),
+            })
+        });
+        const data = await resp.json();
+
+        if (data.error) {
+            errorMsg.textContent = data.error;
+            errorMsg.style.display = 'block';
+        } else {
+            document.getElementById('plot').src = data.plot;
+            document.getElementById('r-surface').textContent = data.surface;
+            document.getElementById('r-adsorbate').textContent = data.adsorbate + ' (' + data.adsorbate_formula + ')';
+            document.getElementById('r-total-atoms').textContent = data.total_atoms;
+            document.getElementById('r-atom-breakdown').textContent = data.slab_atoms + ' slab + ' + data.adsorbate_atoms + ' adsorbate';
+            document.getElementById('r-num-samples').textContent = data.num_samples;
+            document.getElementById('r-proposals').textContent = data.proposals + ' total proposals';
+            document.getElementById('r-unique-positions').textContent = data.unique_positions;
+            document.getElementById('r-min-distance').textContent = 'min pairwise: ' + (data.min_distance !== null ? data.min_distance.toFixed(2) + ' Å' : '—');
+            document.getElementById('r-grid-coverage').textContent = (data.grid_coverage * 100).toFixed(0) + '%';
+            document.getElementById('r-grid-cells').textContent = data.occupied_cells + '/' + data.total_cells + ' cells occupied';
+            document.getElementById('r-rejected-contact').textContent = data.rejected_contact;
+            document.getElementById('r-rejected-vacuum').textContent = data.rejected_vacuum;
+            document.getElementById('r-rejected-lateral').textContent = data.rejected_lateral;
+            document.getElementById('r-total-proposals').textContent = data.proposals;
+            results.style.display = 'block';
+        }
+    } catch (e) {
+        errorMsg.textContent = e.message;
+        errorMsg.style.display = 'block';
+    }
+
+    loading.style.display = 'none';
+    btn.disabled = false;
+}
+</script>
+{% endblock %}

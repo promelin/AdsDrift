@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Adsorbate Library — AdsDrift{% endblock %}
+{% block content %}
+<h1>Adsorbate Library</h1>
+<p class="muted">{{ count }} bundled templates with Cartesian coordinates in Angstrom. Portable, pickle-free, and validated at load time.</p>
+
+<div class="card">
+    <input type="text" id="search" placeholder="Filter by name, formula, or ID…" style="width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;margin-bottom:16px;" oninput="filterTable()">
+    <table id="adsorbate-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Formula</th>
+                <th>Atoms</th>
+                <th>Binding Sites</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in adsorbates %}
+            <tr data-search="{{ a.id }} {{ a.name }} {{ a.formula }}">
+                <td><code>{{ a.id }}</code></td>
+                <td>{{ a.name }}</td>
+                <td>{{ a.formula }}</td>
+                <td>{{ a.atom_count }}</td>
+                <td>{{ a.binding_indices | join(', ') if a.binding_indices else '—' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+function filterTable() {
+    const q = document.getElementById('search').value.toLowerCase();
+    document.querySelectorAll('#adsorbate-table tbody tr').forEach(row => {
+        row.style.display = row.dataset.search.toLowerCase().includes(q) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}

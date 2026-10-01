@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Model Architecture — AdsDrift{% endblock %}
+{% block content %}
+<h1>Model Architecture</h1>
+<p class="muted">Instantiate the EquiformerV3 adsorption generator from a training config and inspect its parameter count and hyperparameters.</p>
+
+<div class="card">
+    <div class="form-group">
+        <label for="config-select">Config File</label>
+        <select id="config-select" onchange="window.location.href='?config=' + this.value">
+            {% for f in config_files %}
+            <option value="{{ f }}" {% if f == config_name %}selected{% endif %}>{{ f }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</div>
+
+{% if error %}
+<div class="card">
+    <span class="badge red">Error</span>
+    <pre>{{ error }}</pre>
+</div>
+{% else %}
+<div class="card-grid">
+    <div class="stat-card">
+        <div class="label">Parameter Count</div>
+        <div class="value blue">{{ "{:,}".format(param_count) }}</div>
+        <div class="detail">{{ config_name }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Layers</div>
+        <div class="value">{{ gen_config.num_layers }}</div>
+        <div class="detail">Transformer blocks</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Channels</div>
+        <div class="value">{{ gen_config.num_channels }}</div>
+        <div class="detail">Hidden width</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Attention Heads</div>
+        <div class="value">{{ gen_config.num_heads }}</div>
+        <div class="detail">{{ gen_config.attn_value_channels }} channels/head</div>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Generator Hyperparameters</h3>
+    <table>
+        <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+        <tbody>
+            {% for key, val in gen_config.items() %}
+            <tr>
+                <td><code>{{ key }}</code></td>
+                <td>{{ val }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h3>Architecture</h3>
+    <p>The generator is a <strong>three-branch local SE(3)-equivariant EquiformerV3</strong> that
+    maps a bank of random initial structures to generated structures in a single forward pass.
+    Each layer applies, in sequence:</p>
+    <ol>
+        <li><strong>Slab self-attention</strong> — full slab &rarr; full slab</li>
+        <li><strong>Adsorbate self-attention</strong> — adsorbate &rarr; adsorbate</li>
+        <li><strong>Cross-attention</strong> — bidirectional slab &harr; adsorbate (reads features already updated by self-attention)</li>
+        <li><strong>FFN residual</strong></li>
+    </ol>
+    <p>All valid nodes (including fixed slab atoms) update their hidden features in attention and
+    FFN residuals, but only movable surface and adsorbate atoms receive coordinate residuals.
+    Coordinate residuals are read from <code>l=1</code> features, so the displacement field is
+    SE(3)-equivariant by construction.</p>
+    <p>Condition information is injected via FiLM modulation from the factorized condition encoder,
+    which encodes primitive cell, Miller index, termination, supercell matrix, layer count, vacuum,
+    strain, and adsorbate identity as independent construction factors.</p>
+</div>
+{% endif %}
+{% endblock %}
